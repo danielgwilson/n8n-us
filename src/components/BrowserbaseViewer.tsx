@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Globe, Maximize2, X, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Globe, Maximize2, X, Loader2, Play } from 'lucide-react';
 
 interface Session {
   id: string;
@@ -11,50 +12,28 @@ interface Session {
   liveViewUrl: string;
 }
 
-// Fixed session ID for shared viewing
-const SHARED_SESSION_ID = 'bbfee89a-c265-4cce-8694-ea0bec6bbb54';
-
 export default function BrowserbaseViewer() {
   const [session, setSession] = useState<Session | null>(null);
+  const [sessionId, setSessionId] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch the debug URL on mount
-  useEffect(() => {
-    const fetchDebugUrl = async () => {
-      try {
-        const response = await fetch(`/api/browserbase/debug?sessionId=${SHARED_SESSION_ID}`);
-        const data = await response.json();
-        
-        if (data.success && data.session.debuggerFullscreenUrl) {
-          setSession({
-            id: SHARED_SESSION_ID,
-            url: `https://www.browserbase.com/sessions/${SHARED_SESSION_ID}`,
-            liveViewUrl: data.session.debuggerFullscreenUrl,
-          });
-        } else {
-          // Fallback to direct URL if API fails
-          setSession({
-            id: SHARED_SESSION_ID,
-            url: `https://www.browserbase.com/sessions/${SHARED_SESSION_ID}`,
-            liveViewUrl: `https://www.browserbase.com/sessions/${SHARED_SESSION_ID}/debug`,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to fetch debug URL:', err);
-        // Fallback to direct URL
-        setSession({
-          id: SHARED_SESSION_ID,
-          url: `https://www.browserbase.com/sessions/${SHARED_SESSION_ID}`,
-          liveViewUrl: `https://www.browserbase.com/sessions/${SHARED_SESSION_ID}/debug`,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDebugUrl();
-  }, []);
+  const loadSession = useCallback(async () => {
+    if (!sessionId.trim()) return;
+    
+    setLoading(true);
+    try {
+      // Set the session with app subdomain /live as default
+      setSession({
+        id: sessionId,
+        url: `https://www.browserbase.com/sessions/${sessionId}`,
+        // Default to app subdomain with /live
+        liveViewUrl: `https://app.browserbase.com/sessions/${sessionId}/live`,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId]);
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen(!isFullscreen);
@@ -85,11 +64,45 @@ export default function BrowserbaseViewer() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          {!session ? (
+            <div className="space-y-4">
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-6">
+                  Enter a Browserbase session ID to view the live browser session.
+                </p>
+              </div>
+              <div className="flex gap-2 max-w-xl mx-auto">
+                <Input
+                  type="text"
+                  placeholder="Enter session ID (e.g., bbfee89a-c265-4cce-8694-ea0bec6bbb54)"
+                  value={sessionId}
+                  onChange={(e) => setSessionId(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && loadSession()}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={loadSession}
+                  disabled={loading || !sessionId.trim()}
+                  className="gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4" />
+                      View Session
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="text-center text-sm text-gray-500">
+                <p>Need a session? Start one in your Browserbase dashboard or via API.</p>
+              </div>
             </div>
-          ) : session ? (
+          ) : (
             <div className="space-y-4">
               <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                 <div>
@@ -106,16 +119,49 @@ export default function BrowserbaseViewer() {
                     <Maximize2 className="h-4 w-4" />
                     Fullscreen
                   </Button>
+                  <Button
+                    onClick={() => {
+                      setSession(null);
+                      setSessionId('');
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Change Session
+                  </Button>
                 </div>
               </div>
 
-              <div className="relative w-full h-[600px] bg-gray-100 rounded-lg overflow-hidden">
-                <iframe
-                  src={session.liveViewUrl}
-                  className="w-full h-full border-0"
-                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                  allow="clipboard-read; clipboard-write"
-                />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>URL Format:</span>
+                  <select 
+                    className="border rounded px-2 py-1"
+                    onChange={(e) => {
+                      setSession({
+                        ...session,
+                        liveViewUrl: e.target.value
+                      });
+                    }}
+                    defaultValue={session.liveViewUrl}
+                  >
+                    <option value={`https://app.browserbase.com/sessions/${session.id}/live`}>app.browserbase.com/sessions/{session.id}/live</option>
+                    <option value={`https://www.browserbase.com/sessions/${session.id}/live`}>www.browserbase.com/sessions/{session.id}/live</option>
+                    <option value={`https://www.browserbase.com/sessions/${session.id}/debug`}>www.browserbase.com/sessions/{session.id}/debug</option>
+                    <option value={`https://app.browserbase.com/sessions/${session.id}/debug`}>app.browserbase.com/sessions/{session.id}/debug</option>
+                    <option value={`https://www.browserbase.com/sessions/${session.id}`}>www.browserbase.com/sessions/{session.id}</option>
+                  </select>
+                  <span className="text-xs text-gray-500">Try different URLs if one doesn&apos;t work</span>
+                </div>
+                <div className="relative w-full h-[600px] bg-gray-100 rounded-lg overflow-hidden">
+                  <iframe
+                    key={session.liveViewUrl}
+                    src={session.liveViewUrl}
+                    className="w-full h-full border-0"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    allow="clipboard-read; clipboard-write"
+                  />
+                </div>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
@@ -127,10 +173,6 @@ export default function BrowserbaseViewer() {
                   <li>The session is being operated by another Claude Code instance</li>
                 </ul>
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-red-600">Failed to load session viewer</p>
             </div>
           )}
         </CardContent>
