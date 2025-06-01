@@ -1,13 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { browserbase } from '@/lib/browserbase';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get('sessionId') || 'bbfee89a-c265-4cce-8694-ea0bec6bbb54';
+    const sessionId = searchParams.get('sessionId');
+    
+    if (!sessionId) {
+      return NextResponse.json(
+        { success: false, error: 'Session ID is required' },
+        { status: 400 }
+      );
+    }
 
-    // Get debug URLs for the session
-    const debugInfo = await browserbase.sessions.debug(sessionId);
+    // Call Browserbase API directly to get debug URLs
+    const response = await fetch(
+      `https://api.browserbase.com/v1/sessions/${sessionId}/debug`,
+      {
+        method: 'GET',
+        headers: {
+          'X-BB-API-Key': process.env.BROWSERBASE_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Browserbase API error:', response.status, errorText);
+      return NextResponse.json(
+        { success: false, error: `Browserbase API error: ${response.status}` },
+        { status: response.status }
+      );
+    }
+
+    const debugInfo = await response.json();
     
     return NextResponse.json({
       success: true,
@@ -16,6 +42,7 @@ export async function GET(request: NextRequest) {
         debuggerUrl: debugInfo.debuggerUrl,
         debuggerFullscreenUrl: debugInfo.debuggerFullscreenUrl,
         wsUrl: debugInfo.wsUrl,
+        pages: debugInfo.pages || [],
       },
     });
   } catch (error) {

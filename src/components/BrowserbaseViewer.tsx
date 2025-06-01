@@ -23,13 +23,23 @@ export default function BrowserbaseViewer() {
     
     setLoading(true);
     try {
-      // Set the session with app subdomain /live as default
-      setSession({
-        id: sessionId,
-        url: `https://www.browserbase.com/sessions/${sessionId}`,
-        // Default to app subdomain with /live
-        liveViewUrl: `https://app.browserbase.com/sessions/${sessionId}/live`,
-      });
+      // Fetch the actual debug URLs from Browserbase API
+      const response = await fetch(`/api/browserbase/debug?sessionId=${sessionId}`);
+      const data = await response.json();
+      
+      if (data.success && data.session.debuggerFullscreenUrl) {
+        setSession({
+          id: sessionId,
+          url: `https://www.browserbase.com/sessions/${sessionId}`,
+          liveViewUrl: data.session.debuggerFullscreenUrl,
+        });
+      } else {
+        // If API fails, show error
+        alert(`Failed to load session: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to load session:', error);
+      alert('Failed to load session. Please check the session ID and try again.');
     } finally {
       setLoading(false);
     }
@@ -132,37 +142,14 @@ export default function BrowserbaseViewer() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>URL Format:</span>
-                  <select 
-                    className="border rounded px-2 py-1"
-                    onChange={(e) => {
-                      setSession({
-                        ...session,
-                        liveViewUrl: e.target.value
-                      });
-                    }}
-                    defaultValue={session.liveViewUrl}
-                  >
-                    <option value={`https://app.browserbase.com/sessions/${session.id}/live`}>app.browserbase.com/sessions/{session.id}/live</option>
-                    <option value={`https://app.browserbase.com/sessions/${session.id}/live?navbar=false`}>app.browserbase.com/sessions/{session.id}/live?navbar=false</option>
-                    <option value={`https://www.browserbase.com/sessions/${session.id}/live`}>www.browserbase.com/sessions/{session.id}/live</option>
-                    <option value={`https://www.browserbase.com/sessions/${session.id}/live?navbar=false`}>www.browserbase.com/sessions/{session.id}/live?navbar=false</option>
-                    <option value={`https://www.browserbase.com/sessions/${session.id}/debug`}>www.browserbase.com/sessions/{session.id}/debug</option>
-                    <option value={`https://app.browserbase.com/sessions/${session.id}/debug`}>app.browserbase.com/sessions/{session.id}/debug</option>
-                  </select>
-                  <span className="text-xs text-gray-500">Try different URLs if one doesn&apos;t work</span>
-                </div>
-                <div className="relative w-full h-[600px] bg-gray-100 rounded-lg overflow-hidden">
-                  <iframe
-                    key={session.liveViewUrl}
-                    src={session.liveViewUrl}
-                    className="w-full h-full border-0"
-                    sandbox="allow-same-origin allow-scripts"
-                    allow="clipboard-read; clipboard-write"
-                  />
-                </div>
+              <div className="relative w-full h-[600px] bg-gray-100 rounded-lg overflow-hidden">
+                <iframe
+                  key={session.liveViewUrl}
+                  src={session.liveViewUrl}
+                  className="w-full h-full border-0"
+                  sandbox="allow-same-origin allow-scripts"
+                  allow="clipboard-read; clipboard-write"
+                />
               </div>
 
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
@@ -173,6 +160,11 @@ export default function BrowserbaseViewer() {
                   <li>This is a shared view - you cannot control this session</li>
                   <li>The session is being operated by another Claude Code instance</li>
                 </ul>
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-xs text-blue-700">
+                    Debug URL: <code className="bg-blue-100 px-1 rounded break-all">{session.liveViewUrl}</code>
+                  </p>
+                </div>
               </div>
             </div>
           )}
