@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Globe, Maximize2, X } from 'lucide-react';
+import { Globe, Maximize2, X } from 'lucide-react';
 
 interface Session {
   id: string;
@@ -19,46 +19,8 @@ const SHARED_SESSION = {
 };
 
 export default function BrowserbaseViewer() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [session, setSession] = useState<Session | null>(SHARED_SESSION);
+  const [session] = useState<Session>(SHARED_SESSION);
   const [isFullscreen, setIsFullscreen] = useState(false);
-
-  const createSession = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/browserbase/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          useProxy: false,
-          keepAlive: true,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSession(data.session);
-      } else {
-        throw new Error(data.error || 'Failed to create session');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create session');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const endSession = useCallback(() => {
-    // Always revert to shared session instead of null
-    setSession(SHARED_SESSION);
-    setIsFullscreen(false);
-  }, []);
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen(!isFullscreen);
@@ -108,15 +70,6 @@ export default function BrowserbaseViewer() {
                     <Maximize2 className="h-4 w-4" />
                     Fullscreen
                   </Button>
-                  {session.id !== SHARED_SESSION.id && (
-                    <Button
-                      onClick={endSession}
-                      variant="destructive"
-                      size="sm"
-                    >
-                      End Session
-                    </Button>
-                  )}
                 </div>
               </div>
 
@@ -136,7 +89,7 @@ export default function BrowserbaseViewer() {
                 <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                   {session.id === SHARED_SESSION.id ? (
                     <>
-                      <li>You're viewing a live browser session controlled by Claude Code</li>
+                      <li>You&apos;re viewing a live browser session controlled by Claude Code</li>
                       <li>Watch as the AI assistant performs automated tasks</li>
                       <li>This is a shared view - you cannot control this session</li>
                       <li>The session is being operated by another Claude Code instance</li>
