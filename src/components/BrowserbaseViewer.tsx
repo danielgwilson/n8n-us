@@ -11,10 +11,17 @@ interface Session {
   liveViewUrl: string;
 }
 
+// Fixed session for shared viewing
+const SHARED_SESSION = {
+  id: 'bbfee89a-c265-4cce-8694-ea0bec6bbb54',
+  url: 'https://www.browserbase.com/sessions/bbfee89a-c265-4cce-8694-ea0bec6bbb54',
+  liveViewUrl: 'https://www.browserbase.com/sessions/bbfee89a-c265-4cce-8694-ea0bec6bbb54/live'
+};
+
 export default function BrowserbaseViewer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null>(SHARED_SESSION);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const createSession = useCallback(async () => {
@@ -48,7 +55,8 @@ export default function BrowserbaseViewer() {
   }, []);
 
   const endSession = useCallback(() => {
-    setSession(null);
+    // Always revert to shared session instead of null
+    setSession(SHARED_SESSION);
     setIsFullscreen(false);
   }, []);
 
@@ -81,41 +89,13 @@ export default function BrowserbaseViewer() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!session ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600 mb-6">
-                Launch a browser session to start automating your workflows with our intelligent assistant.
-                The session will be controlled by n8n workflows to perform tasks on your behalf.
-              </p>
-              <Button
-                onClick={createSession}
-                disabled={loading}
-                size="lg"
-                className="gap-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Creating Session...
-                  </>
-                ) : (
-                  <>
-                    <Globe className="h-4 w-4" />
-                    Launch Browser Session
-                  </>
-                )}
-              </Button>
-              {error && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-                  {error}
-                </div>
-              )}
-            </div>
-          ) : (
+          {session && (
             <div className="space-y-4">
               <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="text-sm text-gray-600">Session ID</p>
+                  <p className="text-sm text-gray-600">
+                    {session.id === SHARED_SESSION.id ? '🔴 Live Shared Session' : 'Session ID'}
+                  </p>
                   <p className="font-mono text-xs">{session.id}</p>
                 </div>
                 <div className="flex gap-2">
@@ -128,13 +108,15 @@ export default function BrowserbaseViewer() {
                     <Maximize2 className="h-4 w-4" />
                     Fullscreen
                   </Button>
-                  <Button
-                    onClick={endSession}
-                    variant="destructive"
-                    size="sm"
-                  >
-                    End Session
-                  </Button>
+                  {session.id !== SHARED_SESSION.id && (
+                    <Button
+                      onClick={endSession}
+                      variant="destructive"
+                      size="sm"
+                    >
+                      End Session
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -148,12 +130,25 @@ export default function BrowserbaseViewer() {
               </div>
 
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-2">How it works:</h3>
+                <h3 className="font-semibold text-blue-900 mb-2">
+                  {session.id === SHARED_SESSION.id ? '🔴 Watching Live Session' : 'How it works:'}
+                </h3>
                 <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                  <li>This browser session is controlled by n8n workflows</li>
-                  <li>The assistant can navigate, fill forms, and extract data</li>
-                  <li>All actions are performed securely in an isolated environment</li>
-                  <li>Session data persists across workflow executions</li>
+                  {session.id === SHARED_SESSION.id ? (
+                    <>
+                      <li>You're viewing a live browser session controlled by Claude Code</li>
+                      <li>Watch as the AI assistant performs automated tasks</li>
+                      <li>This is a shared view - you cannot control this session</li>
+                      <li>The session is being operated by another Claude Code instance</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>This browser session is controlled by n8n workflows</li>
+                      <li>The assistant can navigate, fill forms, and extract data</li>
+                      <li>All actions are performed securely in an isolated environment</li>
+                      <li>Session data persists across workflow executions</li>
+                    </>
+                  )}
                 </ul>
               </div>
             </div>
@@ -166,7 +161,9 @@ export default function BrowserbaseViewer() {
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
           <div className="bg-gray-900 p-4 flex justify-between items-center">
             <div className="text-white">
-              <p className="text-sm opacity-75">n8n Browserbase Session</p>
+              <p className="text-sm opacity-75">
+                {session.id === SHARED_SESSION.id ? '🔴 Live Shared Session - n8n Browserbase' : 'n8n Browserbase Session'}
+              </p>
               <p className="font-mono text-xs opacity-50">{session.id}</p>
             </div>
             <Button
