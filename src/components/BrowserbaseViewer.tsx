@@ -146,10 +146,11 @@ export default function BrowserbaseViewer() {
                     defaultValue={session.liveViewUrl}
                   >
                     <option value={`https://app.browserbase.com/sessions/${session.id}/live`}>app.browserbase.com/sessions/{session.id}/live</option>
+                    <option value={`https://app.browserbase.com/sessions/${session.id}/live?navbar=false`}>app.browserbase.com/sessions/{session.id}/live?navbar=false</option>
                     <option value={`https://www.browserbase.com/sessions/${session.id}/live`}>www.browserbase.com/sessions/{session.id}/live</option>
+                    <option value={`https://www.browserbase.com/sessions/${session.id}/live?navbar=false`}>www.browserbase.com/sessions/{session.id}/live?navbar=false</option>
                     <option value={`https://www.browserbase.com/sessions/${session.id}/debug`}>www.browserbase.com/sessions/{session.id}/debug</option>
                     <option value={`https://app.browserbase.com/sessions/${session.id}/debug`}>app.browserbase.com/sessions/{session.id}/debug</option>
-                    <option value={`https://www.browserbase.com/sessions/${session.id}`}>www.browserbase.com/sessions/{session.id}</option>
                   </select>
                   <span className="text-xs text-gray-500">Try different URLs if one doesn&apos;t work</span>
                 </div>
@@ -158,7 +159,7 @@ export default function BrowserbaseViewer() {
                     key={session.liveViewUrl}
                     src={session.liveViewUrl}
                     className="w-full h-full border-0"
-                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    sandbox="allow-same-origin allow-scripts"
                     allow="clipboard-read; clipboard-write"
                   />
                 </div>
@@ -199,7 +200,7 @@ export default function BrowserbaseViewer() {
             <iframe
               src={session.liveViewUrl}
               className="w-full h-full border-0"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              sandbox="allow-same-origin allow-scripts"
               allow="clipboard-read; clipboard-write"
             />
           </div>
